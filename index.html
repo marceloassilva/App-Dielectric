@@ -3,71 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dielectric Lab - Spectrum Analyzer</title>
+    <title>Dielectric Lab Online</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --primary: #007bff; --mw: #6f42c1; --rf: #fd7e14; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; padding: 20px; color: #333; }
-        .container { width: 100%; max-width: 1000px; margin: auto; }
-        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        :root { --mw: #6f42c1; --rf: #fd7e14; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 900px; margin: auto; }
         .hidden { display: none; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        button { padding: 12px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.3s; }
-        .btn-mw { background: var(--mw); color: white; width: 100%; }
-        .btn-rf { background: var(--rf); color: white; width: 100%; }
-        .status-box { margin-top: 15px; padding: 15px; background: #f8f9fa; border-left: 5px solid var(--mw); font-size: 0.9em; }
-        .chart-container { position: relative; height: 40vh; width: 100%; margin-top: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; }
+        button { padding: 12px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; background: #007bff; color: white; width: 100%; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .status-box { margin-top: 15px; padding: 15px; background: #f8f9fa; border-left: 5px solid var(--mw); }
+        .chart-container { height: 400px; width: 100%; margin-top: 20px; position: relative; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="login-screen" class="card" style="max-width: 400px; margin: 50px auto;">
-        <h2 style="text-align:center">Laboratório Dielétrico</h2>
-        <input type="text" id="user-input" placeholder="Usuário">
-        <input type="password" id="pass-input" placeholder="Senha">
-        <button class="btn-mw" onclick="tentarLogin()">Entrar</button>
-    </div>
+<div class="card" id="login-screen">
+    <h2 style="text-align:center">🔬 Login Laboratório</h2>
+    <input type="text" id="user-input" placeholder="Usuário">
+    <input type="password" id="pass-input" placeholder="Senha">
+    <button onclick="tentarLogin()">Entrar</button>
+</div>
 
-    <div id="app-screen" class="hidden">
-        <div class="card">
-            <div style="display:flex; justify-content:space-between">
-                <h2 id="welcome-text">Módulos de Trabalho</h2>
-                <button onclick="location.reload()" style="background:#ddd">Sair</button>
+<div id="app-screen" class="hidden">
+    <div class="card">
+        <h2>Módulos de Trabalho</h2>
+        <div class="grid">
+            <div class="card" style="border-top: 5px solid var(--rf)">
+                <h3>📡 Medidas RF</h3>
+                <input type="file" id="file-rf">
+                <button onclick="processar('rf')" style="background:var(--rf)">Processar RF</button>
             </div>
 
-            <div class="grid">
-                <div class="card" style="border-top: 5px solid var(--rf)">
-                    <h3>📡 Medidas RF</h3>
-                    <input type="file" id="file-rf">
-                    <button class="btn-rf" onclick="processar('rf')">Processar</button>
-                    <div id="res-rf" class="status-box hidden"></div>
-                </div>
-
-                <div class="card" style="border-top: 5px solid var(--mw)">
-                    <h3>🌊 Medidas MW</h3>
-                    <p><small>Suporta Keysight (2 col) e VNA Portátil (3 col)</small></p>
-                    <input type="file" id="file-mw">
-                    <button class="btn-mw" onclick="processar('mw')">Processar e Gerar Gráfico</button>
-                    <div id="res-mw" class="status-box hidden">
-                        <div class="chart-container">
-                            <canvas id="s11Chart"></canvas>
-                        </div>
-                    </div>
-                </div>
+            <div class="card" style="border-top: 5px solid var(--mw)">
+                <h3>🌊 Medidas MW</h3>
+                <input type="file" id="file-mw">
+                <button onclick="processar('mw')" style="background:var(--mw)">Gerar Espectro</button>
             </div>
         </div>
 
-        <div id="admin-module" class="card hidden">
-            <h3>⚙️ Gestão de Usuários</h3>
+        <div id="res-area" class="status-box hidden">
+            <div id="info-texto"></div>
+            <div class="chart-container">
+                <canvas id="s11Chart"></canvas>
             </div>
+        </div>
     </div>
 </div>
 
 <script>
     const API_URL = "https://app-dielectric.onrender.com";
-    let myChart; // Variável para armazenar a instância do gráfico
+    let myChart = null;
 
     async function tentarLogin() {
         const user = document.getElementById('user-input').value;
@@ -78,25 +65,25 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ user, pass })
             });
-            const data = await res.json();
-            if (data.sucesso) {
+            if (res.ok) {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('app-screen').classList.remove('hidden');
-                document.getElementById('welcome-text').innerText = "Olá, " + user;
-                if (data.cargo === 'admin') document.getElementById('admin-module').classList.remove('hidden');
-            } else alert("Login falhou");
-        } catch (e) { alert("Servidor acordando..."); }
+            } else { alert("Acesso Negado"); }
+        } catch (e) { alert("Erro de conexão com o servidor."); }
     }
 
     async function processar(modulo) {
         const fileInput = document.getElementById(`file-${modulo}`);
-        const resBox = document.getElementById(`res-${modulo}`);
-        if (!fileInput.files[0]) return alert("Selecione o arquivo");
+        const resArea = document.getElementById('res-area');
+        const infoTexto = document.getElementById('info-texto');
+
+        if (!fileInput.files[0]) return alert("Selecione um arquivo!");
 
         const formData = new FormData();
         formData.append('arquivo', fileInput.files[0]);
-        resBox.classList.remove('hidden');
-        resBox.innerHTML = "Processando e gerando gráfico...";
+
+        resArea.classList.remove('hidden');
+        infoTexto.innerHTML = "⏳ Processando dados no servidor...";
 
         try {
             const res = await fetch(`${API_URL}/tratar/${modulo}`, {
@@ -105,72 +92,44 @@
             });
             const data = await res.json();
 
-            if (modulo === 'mw' && data.dadosGrafico) {
-                // Destruir o gráfico antigo se existir
-                if (myChart) {
-                    myChart.destroy();
-                }
-
-                const labels = data.dadosGrafico.map(p => p.frequencia);
-                const s11_values = data.dadosGrafico.map(p => parseFloat(p.s11_db)); // Converter para número
-
-                const ctx = document.getElementById('s11Chart').getContext('2d');
-                myChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: '|S11| (dB)',
-                            data: s11_values,
-                            borderColor: 'rgb(75, 192, 192)',
-                            tension: 0.1,
-                            fill: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: `Espectro de Reflexão (${data.fonte})`
-                            }
-                        },
-                        scales: {
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Frequência'
-                                }
-                            },
-                            y: {
-                                title: {
-                                    display: true,
-                                    text: '|S11| (dB)'
-                                }
-                            }
-                        }
-                    }
-                });
-                resBox.innerHTML = `<p>${data.mensagem}</p><div class="chart-container"><canvas id="s11Chart"></canvas></div>`;
+            if (data.sucesso) {
+                infoTexto.innerHTML = `✅ <strong>${data.fonte}</strong>: ${data.pontos} pontos detectados.`;
+                gerarGrafico(data.dadosGrafico);
             } else {
-                resBox.innerHTML = `<p>${data.mensagem}</p>`;
+                infoTexto.innerHTML = "❌ Erro: " + (data.erro || "Falha no processamento.");
             }
-        } catch (e) { resBox.innerText = "Erro no processamento ou na geração do gráfico."; }
+        } catch (e) {
+            infoTexto.innerHTML = "❌ Erro crítico na comunicação com o Render.";
+        }
     }
 
-    // Funções de Admin (não alteradas, apenas para completude)
-    async function atualizarTabela() {
-        // ... (código existente)
-    }
-    async function cadastrarUsuario() {
-        // ... (código existente)
-    }
-    async function mudarSenha(id) {
-        // ... (código existente)
-    }
-    async function deletarUsuario(id) {
-        // ... (código existente)
+    function gerarGrafico(dados) {
+        const ctx = document.getElementById('s11Chart').getContext('2d');
+
+        if (myChart) myChart.destroy();
+
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: dados.map(p => p.frequencia),
+                datasets: [{
+                    label: '|S11| dB',
+                    data: dados.map(p => p.s11_db),
+                    borderColor: '#6f42c1',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { title: { display: true, text: 'Frequência' } },
+                    y: { title: { display: true, text: 'Magnitude (dB)' } }
+                }
+            }
+        });
     }
 </script>
 </body>
