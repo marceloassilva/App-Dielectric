@@ -32,7 +32,7 @@ async function criarAdminInicial() {
     }
 }
 
-// 3. ROTAS USUÁRIOS
+// 3. ROTAS USUÁRIOS (mantidas para completude)
 app.get('/usuarios', async (req, res) => res.json(await Usuario.find()));
 app.post('/usuarios', async (req, res) => {
     try { const n = new Usuario(req.body); await n.save(); res.status(201).json(n); }
@@ -62,7 +62,7 @@ app.post('/tratar/:modulo', upload.single('arquivo'), (req, res) => {
     const fileContent = fs.readFileSync(filePath, 'utf8');
 
     Papa.parse(fileContent, {
-        header: false, // Usamos false para lidar com arquivos sem cabeçalho fixo
+        header: false,
         dynamicTyping: true,
         skipEmptyLines: true,
         complete: (results) => {
@@ -71,7 +71,6 @@ app.post('/tratar/:modulo', upload.single('arquivo'), (req, res) => {
             const dados = results.data;
 
             if (modulo === 'mw') {
-                // DETECÇÃO DE FONTE POR NÚMERO DE COLUNAS
                 const numColunas = dados[0].length;
 
                 if (numColunas === 2) {
@@ -87,7 +86,6 @@ app.post('/tratar/:modulo', upload.single('arquivo'), (req, res) => {
                         const freq = linha[0];
                         const real = linha[1];
                         const imag = linha[2];
-                        // Cálculo: Linear -> dB
                         const moduloLinear = Math.sqrt(Math.pow(real, 2) + Math.pow(imag, 2));
                         const s11_db = 20 * Math.log10(moduloLinear);
                         return { frequencia: freq, s11_db: s11_db.toFixed(4) };
@@ -96,13 +94,12 @@ app.post('/tratar/:modulo', upload.single('arquivo'), (req, res) => {
                     return res.status(400).json({ erro: "Formato de colunas desconhecido." });
                 }
 
-                // Resumo do processamento
                 res.json({
                     modulo: "MEDIDAS MW",
                     fonte: fonteDetectada,
                     pontos: dadosProcessados.length,
-                    amostra: dadosProcessados.slice(0, 3), // Envia os 3 primeiros pontos para conferência
-                         mensagem: "Conversão concluída com sucesso!"
+                    dadosGrafico: dadosProcessados, // Enviando TODOS os dados para o gráfico
+                    mensagem: "Conversão e dados para gráfico prontos!"
                 });
             } else {
                 res.json({ modulo: modulo.toUpperCase(), mensagem: "Módulo em desenvolvimento." });
