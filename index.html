@@ -3,153 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Dados - Produção</title>
+    <title>Sistema de Gestão - Admin</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 40px; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 550px; text-align: center; }
+        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
         .hidden { display: none; }
-        h2, h3 { color: #333; }
-        .input-group { margin-bottom: 15px; text-align: left; }
-        input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; padding: 12px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.3s; margin-top: 10px; }
-        .btn-primary { background: #007bff; color: white; }
-        .btn-admin { background: #28a745; color: white; }
-        .btn-danger { background: transparent; color: #dc3545; border: 1px solid #dc3545; margin-top: 25px; }
+        input, select { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { padding: 10px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
+        .btn-main { background: #007bff; color: white; width: 100%; }
+        .btn-add { background: #28a745; color: white; width: 100%; margin-bottom: 20px; }
+        .btn-edit { background: #ffc107; margin-right: 5px; }
+        .btn-del { background: #dc3545; color: white; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background: #f8f9fa; }
-        .admin-section { border-top: 2px solid #eee; margin-top: 30px; padding-top: 20px; }
-        .loading { color: #666; font-style: italic; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        .admin-box { border-top: 2px solid #007bff; margin-top: 20px; padding-top: 20px; }
     </style>
 </head>
 <body>
 
     <div class="card">
         <div id="login-screen">
-            <h2>Login do Sistema</h2>
-            <div class="input-group">
-                <label>Usuário</label>
-                <input type="text" id="user-input" placeholder="Ex: admin">
-            </div>
-            <div class="input-group">
-                <label>Senha</label>
-                <input type="password" id="pass-input" placeholder="Sua senha">
-            </div>
-            <button class="btn-primary" id="btn-entrar" onclick="tentarLogin()">Acessar Sistema</button>
-            <p id="msg-status" class="loading hidden">Conectando ao servidor...</p>
+            <h2>🔐 Login</h2>
+            <input type="text" id="user-input" placeholder="Usuário">
+            <input type="password" id="pass-input" placeholder="Senha">
+            <button class="btn-main" onclick="tentarLogin()">Entrar</button>
         </div>
 
         <div id="app-screen" class="hidden">
-            <h2 id="welcome-text">Bem-vindo</h2>
+            <h2 id="welcome-text">Olá</h2>
 
-            <div class="user-section">
-                <h3>📊 Módulo de Tratamento</h3>
-                <button class="btn-primary">Processar Dados</button>
-            </div>
+            <div id="admin-module" class="admin-box hidden">
+                <h3>👥 Gerenciar Equipe</h3>
+                <input type="text" id="new-user-name" placeholder="Nome do Novo Usuário">
+                <select id="new-user-role">
+                    <option value="user">Operador</option>
+                    <option value="admin">Administrador</option>
+                </select>
+                <button class="btn-add" onclick="cadastrarUsuario()">Criar Usuário</button>
 
-            <div id="admin-module" class="admin-section hidden">
-                <h3>🛠 Painel de Controle (Admin)</h3>
-                <div class="input-group">
-                    <input type="text" id="new-user-name" placeholder="Nome do usuário">
-                    <select id="new-user-role">
-                        <option value="user">Operador (User)</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                    <button class="btn-admin" onclick="cadastrarUsuario()">➕ Salvar Usuário</button>
-                </div>
-
-                <h4>Lista de Acessos</h4>
-                <table id="user-table">
-                    <thead>
-                        <tr><th>Usuário</th><th>Perfil</th></tr>
-                    </thead>
-                    <tbody></tbody>
+                <table>
+                    <thead><tr><th>Nome</th><th>Cargo</th><th>Ações</th></tr></thead>
+                    <tbody id="user-table-body"></tbody>
                 </table>
             </div>
-
-            <button class="btn-danger" onclick="logout()">Sair</button>
+            <button class="btn-main" style="background:#6c757d; margin-top:20px;" onclick="location.reload()">Sair</button>
         </div>
     </div>
 
     <script>
-        // AQUI ESTÁ O SEU LINK DO RENDER ATUALIZADO
         const API_URL = "https://app-dielectric.onrender.com";
 
         async function tentarLogin() {
             const user = document.getElementById('user-input').value;
             const pass = document.getElementById('pass-input').value;
-            const status = document.getElementById('msg-status');
-
-            status.classList.remove('hidden');
-            status.innerText = "Validando acesso no servidor...";
-
             try {
-                const response = await fetch(`${API_URL}/login`, {
+                const res = await fetch(`${API_URL}/login`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ user, pass })
                 });
-
-                const dados = await response.json();
-
-                if (dados.sucesso) {
-                    abrirApp(user, dados.cargo === 'admin');
-                } else {
-                    alert(dados.mensagem || "Erro ao fazer login.");
-                }
-            } catch (err) {
-                alert("O servidor demorou a responder. Como é uma conta gratuita, o primeiro acesso do dia pode levar 30 segundos.");
-            } finally {
-                status.classList.add('hidden');
-            }
+                const data = await res.json();
+                if (data.sucesso) {
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app-screen').classList.remove('hidden');
+                    document.getElementById('welcome-text').innerText = "Bem-vindo, " + user;
+                    if (data.cargo === 'admin') {
+                        document.getElementById('admin-module').classList.remove('hidden');
+                        atualizarTabela();
+                    }
+                } else { alert("Login inválido!"); }
+            } catch (e) { alert("Servidor acordando... tente de novo em 30s."); }
         }
 
-        function abrirApp(nome, isAdmin) {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app-screen').classList.remove('hidden');
-            document.getElementById('welcome-text').innerText = "Olá, " + nome;
-
-            if (isAdmin) {
-                document.getElementById('admin-module').classList.remove('hidden');
-                atualizarTabela();
-            }
+        async function atualizarTabela() {
+            const res = await fetch(`${API_URL}/usuarios`);
+            const lista = await res.json();
+            const body = document.getElementById('user-table-body');
+            body.innerHTML = "";
+            lista.forEach(u => {
+                body.innerHTML += `
+                    <tr>
+                        <td>${u.nome}</td>
+                        <td>${u.cargo}</td>
+                        <td>
+                            <button class="btn-edit" onclick="mudarSenha('${u._id}')">🔑</button>
+                            <button class="btn-del" onclick="deletarUsuario('${u._id}')">🗑️</button>
+                        </td>
+                    </tr>`;
+            });
         }
 
         async function cadastrarUsuario() {
             const nome = document.getElementById('new-user-name').value;
             const cargo = document.getElementById('new-user-role').value;
-            const senha = "123";
-
-            if (!nome) return alert("Preencha o nome!");
-
-            try {
-                await fetch(`${API_URL}/usuarios`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome, senha, cargo })
-                });
-                alert("Usuário cadastrado!");
-                document.getElementById('new-user-name').value = "";
-                atualizarTabela();
-            } catch (err) {
-                alert("Erro ao cadastrar.");
-            }
+            await fetch(`${API_URL}/usuarios`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ nome, cargo, senha: '123' })
+            });
+            atualizarTabela();
         }
 
-        async function atualizarTabela() {
-            try {
-                const response = await fetch(`${API_URL}/usuarios`);
-                const lista = await response.json();
-                const corpoTabela = document.querySelector('#user-table tbody');
-                corpoTabela.innerHTML = "";
-                lista.forEach(u => {
-                    const linha = corpoTabela.insertRow();
-                    linha.innerHTML = `<td>${u.nome}</td><td><b>${u.cargo.toUpperCase()}</b></td>`;
-                });
-            } catch (err) {}
+        async function mudarSenha(id) {
+            const nova = prompt("Nova senha:");
+            if(!nova) return;
+            await fetch(`${API_URL}/usuarios/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ senha: nova })
+            });
+            alert("Senha alterada!");
         }
 
-        function logout() { location.reload(); }
+        async function deletarUsuario(id) {
+            if(!confirm("Deseja excluir este usuário?")) return;
+            await fetch(`${API_URL}/usuarios/${id}`, { method: 'DELETE' });
+            atualizarTabela();
+        }
     </script>
 </body>
 </html>

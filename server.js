@@ -3,34 +3,17 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 
 const app = express();
-
-// Configurações de Middleware
 app.use(cors());
 app.use(express.json());
 
 // 1. CONEXÃO COM O MONGODB
-// No Render, configuraremos essa variável "MONGO_URI" no painel de controle
-const mongoURI = process.env.MONGO_URI || "Sua_URL_De_Teste_Aqui_Se_Quiser";
-
+const mongoURI = process.env.MONGO_URI;
 mongoose.connect(mongoURI)
-.then(() => console.log("✅ Conectado ao MongoDB com sucesso!"))
-.catch(err => console.error("❌ Erro ao conectar ao MongoDB:", err));
-
-// Função para criar o primeiro admin automaticamente
-const criarAdminInicial = async () => {
-    const adminExiste = await Usuario.findOne({ nome: 'admin' });
-    if (!adminExiste) {
-        const admin = new Usuario({
-            nome: 'admin',
-            senha: '123', // Altere para uma senha segura depois
-            cargo: 'admin'
-        });
-        await admin.save();
-        console.log("👤 Usuário Admin inicial criado com sucesso!");
-    }
-};
-// Chama a função após conectar
-mongoose.connection.once('open', criarAdminInicial);
+.then(() => {
+    console.log("✅ Conectado ao MongoDB!");
+    criarAdminInicial(); // Tenta criar o admin assim que conecta
+})
+.catch(err => console.error("❌ Erro:", err));
 
 // 2. MODELO DE USUÁRIO
 const Usuario = mongoose.model('Usuario', {
@@ -39,16 +22,18 @@ const Usuario = mongoose.model('Usuario', {
     cargo: { type: String, required: true }
 });
 
-// 3. ROTAS
-app.get('/', (req, res) => res.send("API de Tratamento de Dados Online! 🚀"));
-
-app.get('/usuarios', async (req, res) => {
-    try {
-        const lista = await Usuario.find();
-        res.json(lista);
-    } catch (err) {
-        res.status(500).json({ erro: "Erro ao buscar usuários" });
+// FUNÇÃO AUTO-ADMIN
+async function criarAdminInicial() {
+    const adminExiste = await Usuario.findOne({ nome: 'admin' });
+    if (!adminExiste) {
+        await new Usuario({ nome: 'admin', senha: '123', cargo: 'admin' }).save();
+        console.log("👤 Admin padrão criado (admin/123)");
     }
+}
+
+// 3. ROTAS API
+app.get('/usuarios', async (req, res) => {
+    res.json(await Usuario.find());
 });
 
 app.post('/usuarios', async (req, res) => {
@@ -56,28 +41,28 @@ app.post('/usuarios', async (req, res) => {
         const novo = new Usuario(req.body);
         await novo.save();
         res.status(201).json(novo);
-    } catch (err) {
-        res.status(400).json({ erro: "Erro ao cadastrar ou usuário já existe." });
-    }
+    } catch (err) { res.status(400).json({ erro: "Erro ao cadastrar" }); }
+});
+
+// NOVA ROTA: Alterar Senha
+app.put('/usuarios/:id', async (req, res) => {
+    const { senha } = req.body;
+    await Usuario.findByIdAndUpdate(req.params.id, { senha });
+    res.json({ mensagem: "Atualizado!" });
+});
+
+// NOVA ROTA: Excluir Usuário
+app.delete('/usuarios/:id', async (req, res) => {
+    await Usuario.findByIdAndDelete(req.params.id);
+    res.json({ mensagem: "Removido!" });
 });
 
 app.post('/login', async (req, res) => {
-    try {
-        const { user, pass } = req.body;
-        const usuarioEncontrado = await Usuario.findOne({ nome: user, senha: pass });
-
-        if (usuarioEncontrado) {
-            res.json({ sucesso: true, cargo: usuarioEncontrado.cargo });
-        } else {
-            res.status(401).json({ sucesso: false, mensagem: "Usuário ou senha inválidos" });
-        }
-    } catch (err) {
-        res.status(500).json({ erro: "Erro no servidor" });
-    }
+    const { user, pass } = req.body;
+    const u = await Usuario.findOne({ nome: user, senha: pass });
+    if (u) res.json({ sucesso: true, cargo: u.cargo });
+    else res.status(401).json({ sucesso: false, mensagem: "Incorreto" });
 });
 
-// 4. PORTA DINÂMICA (Essencial para o Render/Railway)
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-});
+app.listen(PORT, () => console.log(`🚀 Rodando na porta ${PORT}`));
