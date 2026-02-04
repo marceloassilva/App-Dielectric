@@ -1,7 +1,14 @@
 {
+  "name": "app-tratamento-dados",
+  "version": "1.0.0",
+  "description": "Sistema de tratamento de dados com login admin",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
-    "body-parser": "^2.2.2",
-    "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0"
   }
 }
