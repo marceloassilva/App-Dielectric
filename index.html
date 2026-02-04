@@ -3,29 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Dados - Conectado ao Node.js</title>
+    <title>Sistema de Dados - Produção</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 40px; }
-        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 550px; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); width: 100%; max-width: 550px; text-align: center; }
         .hidden { display: none; }
-
         h2, h3 { color: #333; }
         .input-group { margin-bottom: 15px; text-align: left; }
         input, select { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
-
-        button { width: 100%; padding: 12px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.3s; }
+        button { width: 100%; padding: 12px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.3s; margin-top: 10px; }
         .btn-primary { background: #007bff; color: white; }
-        .btn-primary:hover { background: #0056b3; }
-        .btn-admin { background: #28a745; color: white; margin-top: 10px; }
-        .btn-admin:hover { background: #218838; }
+        .btn-admin { background: #28a745; color: white; }
         .btn-danger { background: transparent; color: #dc3545; border: 1px solid #dc3545; margin-top: 25px; }
-        .btn-danger:hover { background: #dc3545; color: white; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; }
-        th { background: #f8f9fa; color: #666; }
+        th { background: #f8f9fa; }
         .admin-section { border-top: 2px solid #eee; margin-top: 30px; padding-top: 20px; }
-        .status-msg { font-size: 0.9rem; color: #666; margin-bottom: 10px; }
+        .loading { color: #666; font-style: italic; }
     </style>
 </head>
 <body>
@@ -39,9 +33,10 @@
             </div>
             <div class="input-group">
                 <label>Senha</label>
-                <input type="password" id="pass-input" placeholder="Ex: 123">
+                <input type="password" id="pass-input" placeholder="Sua senha">
             </div>
-            <button class="btn-primary" onclick="tentarLogin()">Acessar Sistema</button>
+            <button class="btn-primary" id="btn-entrar" onclick="tentarLogin()">Acessar Sistema</button>
+            <p id="msg-status" class="loading hidden">Conectando ao servidor...</p>
         </div>
 
         <div id="app-screen" class="hidden">
@@ -49,19 +44,18 @@
 
             <div class="user-section">
                 <h3>📊 Módulo de Tratamento</h3>
-                <p class="status-msg">Conectado ao servidor de dados: <b>Ativo</b></p>
-                <button class="btn-primary" onclick="alert('Funcionalidade de tratamento em breve!')">Processar Novos Dados</button>
+                <button class="btn-primary">Processar Dados</button>
             </div>
 
             <div id="admin-module" class="admin-section hidden">
-                <h3>🛠 Controle de Usuários (Admin)</h3>
+                <h3>🛠 Painel de Controle (Admin)</h3>
                 <div class="input-group">
-                    <input type="text" id="new-user-name" placeholder="Nome do novo usuário">
+                    <input type="text" id="new-user-name" placeholder="Nome do usuário">
                     <select id="new-user-role">
                         <option value="user">Operador (User)</option>
                         <option value="admin">Administrador</option>
                     </select>
-                    <button class="btn-admin" onclick="cadastrarUsuario()">➕ Salvar Novo Usuário</button>
+                    <button class="btn-admin" onclick="cadastrarUsuario()">➕ Salvar Usuário</button>
                 </div>
 
                 <h4>Lista de Acessos</h4>
@@ -69,22 +63,25 @@
                     <thead>
                         <tr><th>Usuário</th><th>Perfil</th></tr>
                     </thead>
-                    <tbody>
-                        </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
 
-            <button class="btn-danger" onclick="logout()">Encerrar Sessão</button>
+            <button class="btn-danger" onclick="logout()">Sair</button>
         </div>
     </div>
 
     <script>
-        const API_URL = "http://localhost:3000";
+        // AQUI ESTÁ O SEU LINK DO RENDER ATUALIZADO
+        const API_URL = "https://app-dielectric.onrender.com";
 
-        // 1. TENTAR LOGIN NO SERVIDOR
         async function tentarLogin() {
             const user = document.getElementById('user-input').value;
             const pass = document.getElementById('pass-input').value;
+            const status = document.getElementById('msg-status');
+
+            status.classList.remove('hidden');
+            status.innerText = "Validando acesso no servidor...";
 
             try {
                 const response = await fetch(`${API_URL}/login`, {
@@ -98,14 +95,15 @@
                 if (dados.sucesso) {
                     abrirApp(user, dados.cargo === 'admin');
                 } else {
-                    alert(dados.mensagem);
+                    alert(dados.mensagem || "Erro ao fazer login.");
                 }
             } catch (err) {
-                alert("Erro ao conectar ao servidor Node.js. Ele está rodando?");
+                alert("O servidor demorou a responder. Como é uma conta gratuita, o primeiro acesso do dia pode levar 30 segundos.");
+            } finally {
+                status.classList.add('hidden');
             }
         }
 
-        // 2. CONFIGURAR VISUALIZAÇÃO
         function abrirApp(nome, isAdmin) {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('app-screen').classList.remove('hidden');
@@ -113,56 +111,45 @@
 
             if (isAdmin) {
                 document.getElementById('admin-module').classList.remove('hidden');
-                atualizarTabela(); // Carrega lista de usuários se for admin
+                atualizarTabela();
             }
         }
 
-        // 3. CADASTRAR NO BANCO (VIA NODE)
         async function cadastrarUsuario() {
             const nome = document.getElementById('new-user-name').value;
             const cargo = document.getElementById('new-user-role').value;
-            const senha = "123"; // Senha padrão fixa para o teste
+            const senha = "123";
 
             if (!nome) return alert("Preencha o nome!");
 
             try {
-                const response = await fetch(`${API_URL}/usuarios`, {
+                await fetch(`${API_URL}/usuarios`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nome, senha, cargo })
                 });
-
-                if (response.ok) {
-                    alert(`Usuário ${nome} cadastrado com sucesso!`);
-                    document.getElementById('new-user-name').value = "";
-                    atualizarTabela();
-                }
+                alert("Usuário cadastrado!");
+                document.getElementById('new-user-name').value = "";
+                atualizarTabela();
             } catch (err) {
-                alert("Erro ao salvar usuário.");
+                alert("Erro ao cadastrar.");
             }
         }
 
-        // 4. BUSCAR USUÁRIOS DO SERVIDOR
         async function atualizarTabela() {
             try {
                 const response = await fetch(`${API_URL}/usuarios`);
                 const lista = await response.json();
-
                 const corpoTabela = document.querySelector('#user-table tbody');
                 corpoTabela.innerHTML = "";
-
                 lista.forEach(u => {
                     const linha = corpoTabela.insertRow();
                     linha.innerHTML = `<td>${u.nome}</td><td><b>${u.cargo.toUpperCase()}</b></td>`;
                 });
-            } catch (err) {
-                console.error("Erro ao listar usuários:", err);
-            }
+            } catch (err) {}
         }
 
-        function logout() {
-            location.reload();
-        }
+        function logout() { location.reload(); }
     </script>
 </body>
 </html>
