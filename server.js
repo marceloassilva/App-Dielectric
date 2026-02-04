@@ -16,6 +16,22 @@ mongoose.connect(mongoURI)
 .then(() => console.log("✅ Conectado ao MongoDB com sucesso!"))
 .catch(err => console.error("❌ Erro ao conectar ao MongoDB:", err));
 
+// Função para criar o primeiro admin automaticamente
+const criarAdminInicial = async () => {
+    const adminExiste = await Usuario.findOne({ nome: 'admin' });
+    if (!adminExiste) {
+        const admin = new Usuario({
+            nome: 'admin',
+            senha: '123', // Altere para uma senha segura depois
+            cargo: 'admin'
+        });
+        await admin.save();
+        console.log("👤 Usuário Admin inicial criado com sucesso!");
+    }
+};
+// Chama a função após conectar
+mongoose.connection.once('open', criarAdminInicial);
+
 // 2. MODELO DE USUÁRIO
 const Usuario = mongoose.model('Usuario', {
     nome: { type: String, required: true, unique: true },
