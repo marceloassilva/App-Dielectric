@@ -3,89 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plataforma Dielectric - Módulos</title>
+    <title>Dielectric Platform - MW Module</title>
     <style>
-        :root { --primary: #007bff; --secondary: #6c757d; --success: #28a745; --mw-color: #6f42c1; --rf-color: #fd7e14; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eef2f7; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        :root { --primary: #007bff; --success: #28a745; --mw-color: #6f42c1; --rf-color: #fd7e14; }
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; margin: 0; padding: 20px; display: flex; justify-content: center; }
         .container { width: 100%; max-width: 900px; }
         .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .hidden { display: none; }
-
-        h2 { color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
         .grid-modulos { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        @media (max-width: 600px) { .grid-modulos { grid-template-columns: 1fr; } }
-
-        .modulo-item { border: 1px solid #ddd; padding: 20px; border-radius: 8px; transition: 0.3s; background: #fff; }
-        .modulo-item:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-
-        input[type="text"], input[type="password"], select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; }
-        button { padding: 12px 20px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; transition: 0.2s; }
-
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        button { padding: 12px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
         .btn-block { width: 100%; margin-top: 10px; }
         .btn-rf { background: var(--rf-color); color: white; }
         .btn-mw { background: var(--mw-color); color: white; }
         .btn-lib { background: var(--primary); color: white; }
-        .btn-login { background: var(--primary); color: white; width: 100%; }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        th { background: #f8f9fa; }
-
-        .status-box { margin-top: 10px; padding: 10px; border-radius: 4px; font-size: 0.85em; background: #f0f0f0; border-left: 4px solid #ccc; }
+        .status-box { margin-top: 10px; padding: 15px; border-radius: 4px; background: #f8f9fa; border-left: 5px solid #6c757d; color: #333; line-height: 1.5; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div id="login-screen" class="card">
-        <h2 style="text-align:center;">🔬 Dielectric Lab Login</h2>
+        <h2 style="text-align:center;">🔬 Dielectric Lab</h2>
         <input type="text" id="user-input" placeholder="Usuário">
         <input type="password" id="pass-input" placeholder="Senha">
-        <button class="btn-login" onclick="tentarLogin()">Acessar Plataforma</button>
+        <button class="btn-lib btn-block" onclick="tentarLogin()">Acessar</button>
     </div>
 
     <div id="app-screen" class="hidden">
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2 id="welcome-text">Módulos de Trabalho</h2>
-                <button onclick="location.reload()" style="background:#ddd;">Sair</button>
+                <h2 id="welcome-text">Módulos</h2>
+                <button onclick="location.reload()">Sair</button>
             </div>
 
             <div class="grid-modulos">
-                <div class="modulo-item" style="border-top: 5px solid var(--rf-color);">
+                <div class="card" style="border-top: 5px solid var(--rf-color); margin:0; padding:15px;">
                     <h3>📡 Medidas RF</h3>
-                    <p style="font-size:0.8em; color: #666;">Tratamento dielétrico em rádio frequência.</p>
                     <input type="file" id="file-rf">
                     <button class="btn-rf btn-block" onclick="processar('rf')">Processar RF</button>
                     <div id="res-rf" class="status-box hidden"></div>
                 </div>
 
-                <div class="modulo-item" style="border-top: 5px solid var(--mw-color);">
+                <div class="card" style="border-top: 5px solid var(--mw-color); margin:0; padding:15px;">
                     <h3>🌊 Medidas MW</h3>
-                    <p style="font-size:0.8em; color: #666;">Análise dielétrica em micro-ondas.</p>
                     <input type="file" id="file-mw">
                     <button class="btn-mw btn-block" onclick="processar('mw')">Processar MW</button>
                     <div id="res-mw" class="status-box hidden"></div>
-                </div>
-
-                <div class="modulo-item" style="border-top: 5px solid var(--primary); grid-column: span 1;">
-                    <h3>📚 Biblioteca</h3>
-                    <p style="font-size:0.8em; color: #666;">Base de dados de materiais.</p>
-                    <button class="btn-lib btn-block" onclick="processar('biblioteca')">Abrir Biblioteca</button>
-                    <div id="res-lib" class="status-box hidden"></div>
                 </div>
             </div>
         </div>
 
         <div id="admin-module" class="card hidden">
-            <h3>⚙️ Gerenciamento de Usuários (Admin)</h3>
+            <h3>⚙️ Usuários</h3>
             <div style="display:flex; gap:10px;">
-                <input type="text" id="new-user-name" placeholder="Novo usuário">
-                <select id="new-user-role">
-                    <option value="user">Operador</option>
-                    <option value="admin">Admin</option>
-                </select>
-                <button class="btn-lib" onclick="cadastrarUsuario()">Adicionar</button>
+                <input type="text" id="new-user-name" placeholder="Nome">
+                <select id="new-user-role"><option value="user">User</option><option value="admin">Admin</option></select>
+                <button class="btn-lib" onclick="cadastrarUsuario()">+</button>
             </div>
             <table>
                 <thead><tr><th>Nome</th><th>Cargo</th><th>Ações</th></tr></thead>
@@ -116,23 +92,20 @@
                     document.getElementById('admin-module').classList.remove('hidden');
                     atualizarTabela();
                 }
-            } else { alert("Login falhou."); }
-        } catch (e) { alert("Servidor iniciando... aguarde 30s e tente de novo."); }
+            } else { alert("Falha no login"); }
+        } catch (e) { alert("Aguarde o servidor acordar (30s)..."); }
     }
 
     async function processar(modulo) {
         const fileInput = document.getElementById(`file-${modulo}`);
         const resBox = document.getElementById(`res-${modulo}`);
-
-        if (modulo !== 'biblioteca' && (!fileInput || !fileInput.files[0])) {
-            return alert("Selecione um arquivo primeiro!");
-        }
+        if (!fileInput.files[0]) return alert("Selecione o arquivo!");
 
         const formData = new FormData();
-        if (fileInput && fileInput.files[0]) formData.append('arquivo', fileInput.files[0]);
+        formData.append('arquivo', fileInput.files[0]);
 
         resBox.classList.remove('hidden');
-        resBox.innerText = "Enviando...";
+        resBox.innerText = "Processando...";
 
         try {
             const res = await fetch(`${API_URL}/tratar/${modulo}`, {
@@ -140,11 +113,10 @@
                 body: formData
             });
             const data = await res.json();
-            resBox.innerHTML = `<strong>${data.modulo}:</strong> ${data.detalhes}<br><small>${data.arquivo || ''}</small>`;
-        } catch (e) { resBox.innerText = "Erro na conexão."; }
+            resBox.innerHTML = `<strong>${data.modulo}</strong><br>${data.detalhes}`;
+        } catch (e) { resBox.innerText = "Erro no processamento."; }
     }
 
-    // FUNÇÕES ADMIN (REPETIDAS PARA COMPLETUDE)
     async function atualizarTabela() {
         const res = await fetch(`${API_URL}/usuarios`);
         const lista = await res.json();
