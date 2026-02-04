@@ -53,7 +53,7 @@ app.post('/login', async (req, res) => {
     else res.status(401).json({ sucesso: false });
 });
 
-// 4. LÓGICA DE TRATAMENTO MW
+// 4. LÓGICA DE TRATAMENTO MW (KEYSIGHT VS VNA PORTÁTIL)
 app.post('/tratar/:modulo', upload.single('arquivo'), (req, res) => {
     const { modulo } = req.params;
     if (!req.file) return res.status(400).json({ erro: "Arquivo ausente" });
@@ -61,32 +61,57 @@ app.post('/tratar/:modulo', upload.single('arquivo'), (req, res) => {
     const filePath = req.file.path;
     const fileContent = fs.readFileSync(filePath, 'utf8');
 
-    // Usando PapaParse para ler o CSV/TXT
     Papa.parse(fileContent, {
-        header: true,
+        header: false, // Usamos false para lidar com arquivos sem cabeçalho fixo
         dynamicTyping: true,
         skipEmptyLines: true,
         complete: (results) => {
-            let resposta = { modulo: modulo.toUpperCase(), arquivo: req.file.originalname };
+            let dadosProcessados = [];
+            let fonteDetectada = "";
+            const dados = results.data;
 
             if (modulo === 'mw') {
-                // Exemplo de lógica para MW: Calcular média de uma coluna chamada 'permissividade' ou 'epsilon'
-                const dados = results.data;
-                const campoAlvo = dados[0].epsilon || dados[0].permissividade || Object.keys(dados[0])[1]; // Tenta achar a coluna
+                // DETECÇÃO DE FONTE POR NÚMERO DE COLUNAS
+                const numColunas = dados[0].length;
 
-                const soma = dados.reduce((acc, curr) => acc + (curr[campoAlvo] || 0), 0);
-                const media = (soma / dados.length).toFixed(4);
+                if (numColunas === 2) {
+                    fonteDetectada = "Keysight (Freq, |S11|dB)";
+                    dadosProcessados = dados.map(linha => ({
+                        frequencia: linha[0],
+                        s11_db: linha[1]
+                    }));
+                }
+                else if (numColunas === 3) {
+                    fonteDetectada = "VNA Portátil (Freq, Real, Imag)";
+                    dadosProcessados = dados.map(linha => {
+                        const freq = linha[0];
+                        const real = linha[1];
+                        const imag = linha[2];
+                        // Cálculo: Linear -> dB
+                        const moduloLinear = Math.sqrt(Math.pow(real, 2) + Math.pow(imag, 2));
+                        const s11_db = 20 * Math.log10(moduloLinear);
+                        return { frequencia: freq, s11_db: s11_db.toFixed(4) };
+                    });
+                } else {
+                    return res.status(400).json({ erro: "Formato de colunas desconhecido." });
+                }
 
-                resposta.detalhes = `Processadas ${dados.length} linhas. Média de ${campoAlvo}: ${media}`;
+                // Resumo do processamento
+                res.json({
+                    modulo: "MEDIDAS MW",
+                    fonte: fonteDetectada,
+                    pontos: dadosProcessados.length,
+                    amostra: dadosProcessados.slice(0, 3), // Envia os 3 primeiros pontos para conferência
+                         mensagem: "Conversão concluída com sucesso!"
+                });
             } else {
-                resposta.detalhes = "Arquivo recebido. Lógica para este módulo ainda em desenvolvimento.";
+                res.json({ modulo: modulo.toUpperCase(), mensagem: "Módulo em desenvolvimento." });
             }
 
-            fs.unlinkSync(filePath); // Limpa o arquivo temporário
-            res.json(resposta);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Porta ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Servidor MW pronto na porta ${PORT}`));
