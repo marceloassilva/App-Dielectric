@@ -1,19 +1,24 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Configuração do Multer para uploads temporários
+const upload = multer({ dest: 'uploads/' });
 
 // 1. CONEXÃO COM O MONGODB
 const mongoURI = process.env.MONGO_URI;
 mongoose.connect(mongoURI)
 .then(() => {
     console.log("✅ Conectado ao MongoDB!");
-    criarAdminInicial(); // Tenta criar o admin assim que conecta
+    criarAdminInicial();
 })
-.catch(err => console.error("❌ Erro:", err));
+.catch(err => console.error("❌ Erro ao conectar:", err));
 
 // 2. MODELO DE USUÁRIO
 const Usuario = mongoose.model('Usuario', {
@@ -22,7 +27,6 @@ const Usuario = mongoose.model('Usuario', {
     cargo: { type: String, required: true }
 });
 
-// FUNÇÃO AUTO-ADMIN
 async function criarAdminInicial() {
     const adminExiste = await Usuario.findOne({ nome: 'admin' });
     if (!adminExiste) {
@@ -31,7 +35,7 @@ async function criarAdminInicial() {
     }
 }
 
-// 3. ROTAS API
+// 3. ROTAS DE USUÁRIO
 app.get('/usuarios', async (req, res) => {
     res.json(await Usuario.find());
 });
@@ -44,14 +48,12 @@ app.post('/usuarios', async (req, res) => {
     } catch (err) { res.status(400).json({ erro: "Erro ao cadastrar" }); }
 });
 
-// NOVA ROTA: Alterar Senha
 app.put('/usuarios/:id', async (req, res) => {
     const { senha } = req.body;
     await Usuario.findByIdAndUpdate(req.params.id, { senha });
     res.json({ mensagem: "Atualizado!" });
 });
 
-// NOVA ROTA: Excluir Usuário
 app.delete('/usuarios/:id', async (req, res) => {
     await Usuario.findByIdAndDelete(req.params.id);
     res.json({ mensagem: "Removido!" });
@@ -62,6 +64,26 @@ app.post('/login', async (req, res) => {
     const u = await Usuario.findOne({ nome: user, senha: pass });
     if (u) res.json({ sucesso: true, cargo: u.cargo });
     else res.status(401).json({ sucesso: false, mensagem: "Incorreto" });
+});
+
+// 4. NOVA ROTA: TRATAMENTO DE DADOS
+app.post('/tratar-dados', upload.single('arquivo'), (req, res) => {
+    if (!req.file) return res.status(400).json({ erro: "Nenhum arquivo enviado" });
+
+    // Lógica inicial: apenas lê o nome e devolve confirmação
+    // No futuro, aqui leremos o conteúdo do CSV/Excel
+    const infoArquivo = {
+        nome: req.file.originalname,
+        tamanho: (req.file.size / 1024).toFixed(2) + " KB",
+         mensagem: "Arquivo recebido pelo servidor no Render!"
+    };
+
+    console.log("Tratando arquivo:", infoArquivo.nome);
+
+    // Apaga o arquivo temporário após receber para não encher o servidor
+    fs.unlinkSync(req.file.path);
+
+    res.json(infoArquivo);
 });
 
 const PORT = process.env.PORT || 3000;

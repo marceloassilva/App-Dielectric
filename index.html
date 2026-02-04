@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestão - Admin</title>
+    <title>Sistema de Gestão e Tratamento</title>
     <style>
         body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; padding: 20px; }
         .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 600px; }
@@ -12,11 +12,13 @@
         button { padding: 10px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; }
         .btn-main { background: #007bff; color: white; width: 100%; }
         .btn-add { background: #28a745; color: white; width: 100%; margin-bottom: 20px; }
+        .btn-process { background: #6f42c1; color: white; width: 100%; margin-top: 10px; }
         .btn-edit { background: #ffc107; margin-right: 5px; }
         .btn-del { background: #dc3545; color: white; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        .admin-box { border-top: 2px solid #007bff; margin-top: 20px; padding-top: 20px; }
+        .section-box { border-top: 2px solid #007bff; margin-top: 30px; padding-top: 20px; }
+        #res-area { margin-top: 15px; padding: 10px; background: #e9ecef; border-radius: 4px; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -32,7 +34,14 @@
         <div id="app-screen" class="hidden">
             <h2 id="welcome-text">Olá</h2>
 
-            <div id="admin-module" class="admin-box hidden">
+            <div class="section-box">
+                <h3>📊 Tratamento de Dados</h3>
+                <input type="file" id="file-input" accept=".csv, .xlsx, .txt">
+                <button class="btn-process" onclick="enviarArquivo()">🚀 Enviar para Processamento</button>
+                <div id="res-area" class="hidden"></div>
+            </div>
+
+            <div id="admin-module" class="section-box hidden">
                 <h3>👥 Gerenciar Equipe</h3>
                 <input type="text" id="new-user-name" placeholder="Nome do Novo Usuário">
                 <select id="new-user-role">
@@ -46,7 +55,8 @@
                     <tbody id="user-table-body"></tbody>
                 </table>
             </div>
-            <button class="btn-main" style="background:#6c757d; margin-top:20px;" onclick="location.reload()">Sair</button>
+
+            <button class="btn-main" style="background:#6c757d; margin-top:30px;" onclick="location.reload()">Sair do Sistema</button>
         </div>
     </div>
 
@@ -73,6 +83,30 @@
                     }
                 } else { alert("Login inválido!"); }
             } catch (e) { alert("Servidor acordando... tente de novo em 30s."); }
+        }
+
+        async function enviarArquivo() {
+            const fileInput = document.getElementById('file-input');
+            const resArea = document.getElementById('res-area');
+
+            if (!fileInput.files[0]) return alert("Selecione um arquivo primeiro!");
+
+            const formData = new FormData();
+            formData.append('arquivo', fileInput.files[0]);
+
+            resArea.classList.remove('hidden');
+            resArea.innerText = "Processando arquivo no servidor...";
+
+            try {
+                const res = await fetch(`${API_URL}/tratar-dados`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                resArea.innerHTML = `<strong>Sucesso!</strong><br>Arquivo: ${data.nome}<br>Tamanho: ${data.tamanho}<br>${data.mensagem}`;
+            } catch (e) {
+                resArea.innerText = "Erro ao enviar arquivo.";
+            }
         }
 
         async function atualizarTabela() {
