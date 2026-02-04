@@ -35,7 +35,7 @@ async function criarAdminInicial() {
     }
 }
 
-// 3. ROTAS DE USUÁRIO
+// 3. ROTAS DE USUÁRIO (CRUD)
 app.get('/usuarios', async (req, res) => {
     res.json(await Usuario.find());
 });
@@ -66,24 +66,37 @@ app.post('/login', async (req, res) => {
     else res.status(401).json({ sucesso: false, mensagem: "Incorreto" });
 });
 
-// 4. NOVA ROTA: TRATAMENTO DE DADOS
-app.post('/tratar-dados', upload.single('arquivo'), (req, res) => {
+// 4. ROTA DE TRATAMENTO POR MÓDULO
+app.post('/tratar/:modulo', upload.single('arquivo'), (req, res) => {
+    const { modulo } = req.params;
     if (!req.file) return res.status(400).json({ erro: "Nenhum arquivo enviado" });
 
-    // Lógica inicial: apenas lê o nome e devolve confirmação
-    // No futuro, aqui leremos o conteúdo do CSV/Excel
-    const infoArquivo = {
-        nome: req.file.originalname,
-        tamanho: (req.file.size / 1024).toFixed(2) + " KB",
-         mensagem: "Arquivo recebido pelo servidor no Render!"
+    // Aqui a lógica mudará de acordo com o módulo no futuro
+    let respostaEspecifica = "";
+
+    switch(modulo) {
+        case 'rf':
+            respostaEspecifica = "Processando Medidas Dielétricas em RF...";
+            break;
+        case 'mw':
+            respostaEspecifica = "Processando Medidas Dielétricas em MW...";
+            break;
+        case 'biblioteca':
+            respostaEspecifica = "Acessando Biblioteca de Materiais...";
+            break;
+        default:
+            respostaEspecifica = "Módulo desconhecido.";
+    }
+
+    const info = {
+        modulo: modulo.toUpperCase(),
+         arquivo: req.file.originalname,
+         status: "Recebido",
+         detalhes: respostaEspecifica
     };
 
-    console.log("Tratando arquivo:", infoArquivo.nome);
-
-    // Apaga o arquivo temporário após receber para não encher o servidor
-    fs.unlinkSync(req.file.path);
-
-    res.json(infoArquivo);
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.json(info);
 });
 
 const PORT = process.env.PORT || 3000;
